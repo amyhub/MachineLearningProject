@@ -1,0 +1,88 @@
+---
+title: "Machine Learning Course Project"
+author: "Amy S"
+date: "April 13, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Problem Statement / Introduction
+
+The goal of this project was to use a dataset to develop a model that will predict one of five possible outcomes. The dataset is from <http://groupware.les.inf.puc-rio.br/har>. In this 6 people were asked to perform barbell lifts five different ways:
+
+* Class A: exactly according to the specification 
+* Class B: throwing the elbows to the front
+* Class C: lifting the dumbbell only halfway
+* Class D: lowering the dumbbell only halfway
+* Class E: throwing the hips to the front 
+
+Data was collected from accelerometers on the belt, forearm, arm, and dumbbell. 
+
+Using this data, a model was developed to predict which class of exercise was performed. The *data exploration* section will explain the choices made in this analysis. The *methods* section below will answer how the model was built, and what cross validation was used. The *results* section will outline the expected out of sample error and the results of the model. 
+
+## Data Exploration
+
+The training data was located in pml-training.csv. This dataset was downloaded and then split into a training and test dataset with 80% for training and 20% for testing. This is a standard split. 
+
+Using the summary command, the dataset was found to have 160 variables. A large majority of them contained mainly N/A values, and all variables with "max, min, amplitude, stddev, avg, var, kurtosis, skewness" were removed from consideration. This left 60 variables. The first 7 variables were then removed. This included several time-stamps (removed because this was not time-sensitive data), names of the participants (not generalizable), and the data row number. 
+
+This left 53 variables. 
+
+Chunks of variables were explored to see their relationship to the "classe" outcome variable. 
+
+Plotting "roll_belt", "pitch_belt", "yaw_belt", "total_accel_belt" had the following result:
+
+![Feature Plot of First 4 Variables](main_4.png)
+
+These appear to have distinct groupings, but not 5 distinct groups.
+
+Plotting "gyros_belt_x","gyros_belt_y","gyros_belt_z" shows:
+![Feature Plot of gyro Variables](gyros.png)
+
+There could be information there, but it is unclear. 
+
+Plotting "roll_dumbbell","pitch_dumbbell","yaw_dumbbell" shows:
+![Feature Plot of dumbbell Variables](dumbbell.png)
+
+There isn't much there.
+
+There are many variables from each of the different accelerometers. No one from any accelerometer appears to stand alone. After researching multiple different model algorithms, *boosting with trees* is the best possibility. That technique is appropriate for datasets that have many, potentially weak variables, by weighting and combining them. Thus, while the 53 variables all have an impact on predicting the outcome, some may be more useful than others, but it is difficult to identify ones to eliminate all-together. 
+
+## Methods
+
+The data was loaded, partitioned, and culled as described in *data exploration*. 
+
+The model was created using:
+```
+allGBMmodel = train(classe ~ ., method="gbm",data=dataTrain,verbose=FALSE)
+```
+The cross-validation used was the default of 25 bootstrapped samples. Bootstrap is the appropriate method because the data was in order (per person, per class) and random samples of the data are needed, instead of k-folded chunks.
+
+## Results
+
+The model was as below:
+
+```{r load, cache=TRUE}
+load("models")
+print(allGBMmodel)
+```
+
+The model has an expected out of sample error of 95.7%. 
+
+Testing the model against the test dataset
+
+```{r confusion, dependson="load",cache=TRUE}
+library(caret);
+load("predictions")
+confusionMatrix(dataTest$classe, predict_test)
+```
+
+## Conclusion
+The confusion matrix shows a high number of matches, high sensitivity and specificity for all 5 classes, and an overall accuracy of 96%. 
+This is a good model. 
+
+Running the model against the 20 test cases for the course quiz scored a 20/20. 
+
